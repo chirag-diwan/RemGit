@@ -1,6 +1,8 @@
 package utils
 
-import "github.com/chirag-diwan/RemGit/githubapi"
+import (
+	"github.com/chirag-diwan/RemGit/githubapi"
+)
 
 func PerformSearch(query string, searchType int) SearchResult {
 	if query == "" {
@@ -24,4 +26,11 @@ func PerformSearch(query string, searchType int) SearchResult {
 			Users: users,
 		}
 	}
+}
+
+func GetMenuOptions(searchType int) []string {
+	if searchType == SearchRepo {
+		return []string{"Open Repo", "Clone Repo", "Copy Link", "Cancel"}
+	}
+	return []string{"View Profile", "Show Repositories", "Follow User", "Cancel"}
 }

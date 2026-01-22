@@ -1,4 +1,4 @@
-package utils
+package tui
 
 import (
 	"fmt"
@@ -6,17 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/chirag-diwan/RemGit/githubapi"
+	"github.com/chirag-diwan/RemGit/utils"
 )
 
-var Logo = `
-  _____               _____ _ _
- |  __ \             / ____(_) |
- | |__) |___ _ __ __| |  __ _| |_
- |  _  
- | | \ \  __/ | | | | |__| | | |_
- |_|  \_\___|_| |_| |_|\_____|_|\__|
-`
 
 var (
 	colSubtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
@@ -24,10 +16,6 @@ var (
 	colText      = lipgloss.AdaptiveColor{Light: "#333333", Dark: "#E0E0E0"}
 	colDim       = lipgloss.AdaptiveColor{Light: "#A0A0A0", Dark: "#555555"}
 
-	styleWindow = lipgloss.NewStyle().
-			Border(lipgloss.DoubleBorder()).
-			BorderForeground(colSubtle).
-			Align(lipgloss.Center)
 
 	styleInputBox = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -52,17 +40,6 @@ var (
 			Align(lipgloss.Center)
 )
 
-type SearchResult struct {
-	Users githubapi.UserSearchResponse
-	Repos githubapi.RepoSearchResponse
-}
-
-type Menu struct {
-	Active  bool
-	Options []string
-	Cursor  int
-}
-
 type Model struct {
 	AppState     int
 	Width        int
@@ -70,16 +47,9 @@ type Model struct {
 	SearchText   string
 	InputMode    int
 	SearchType   int
-	Results      SearchResult
+	Results      utils.SearchResult
 	ResultCursor int
-	ActionMenu   Menu
-}
-
-func getMenuOptions(searchType int) []string {
-	if searchType == SearchRepo {
-		return []string{"Open Repo", "Clone Repo", "Copy Link", "Cancel"}
-	}
-	return []string{"View Profile", "Show Repositories", "Follow User", "Cancel"}
+	ActionMenu   utils.Menu
 }
 
 func (m Model) Init() tea.Cmd { return nil }
@@ -93,19 +63,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 
-		if msg.String() == "tab" && m.AppState != StateMenu {
-			if m.SearchType == SearchRepo {
-				m.SearchType = SearchUser
+		if msg.String() == "tab" && m.AppState != utils.StateMenu {
+			if m.SearchType == utils.SearchRepo {
+				m.SearchType = utils.SearchUser
 			} else {
-				m.SearchType = SearchRepo
+				m.SearchType = utils.SearchRepo
 			}
 
 			m.ResultCursor = 0
-			m.AppState = StateStart
+			m.AppState = utils.StateStart
 			return m, nil
 		}
 
-		if m.AppState == StateMenu {
+		if m.AppState == utils.StateMenu {
 			switch msg.String() {
 			case "j", "down":
 				if m.ActionMenu.Cursor < len(m.ActionMenu.Options)-1 {
@@ -119,32 +89,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				selected := m.ActionMenu.Options[m.ActionMenu.Cursor]
 
 				if selected == "Cancel" {
-					m.AppState = StateResults
+					m.AppState = utils.StateResults
 				} else {
-					m.AppState = StateResults
+					m.AppState = utils.StateResults
 				}
 			case "esc":
-				m.AppState = StateResults
+				m.AppState = utils.StateResults
 			}
 			return m, nil
 		}
 
-		if m.InputMode == ModeInsert {
+		if m.InputMode == utils.ModeInsert {
 			switch msg.String() {
 			case "enter":
 
-				m.Results = PerformSearch(m.SearchText, m.SearchType)
+				m.Results = utils.PerformSearch(m.SearchText, m.SearchType)
 				m.ResultCursor = 0
 
-				hasRepos := m.SearchType == SearchRepo && len(m.Results.Repos.Items) > 0
-				hasUsers := m.SearchType == SearchUser && len(m.Results.Users.Items) > 0
+				hasRepos := m.SearchType == utils.SearchRepo && len(m.Results.Repos.Items) > 0
+				hasUsers := m.SearchType == utils.SearchUser && len(m.Results.Users.Items) > 0
 
 				if hasRepos || hasUsers {
-					m.AppState = StateResults
-					m.InputMode = ModeNormal
+					m.AppState = utils.StateResults
+					m.InputMode = utils.ModeNormal
 				}
 			case "esc":
-				m.InputMode = ModeNormal
+				m.InputMode = utils.ModeNormal
 			case "backspace":
 				if len(m.SearchText) > 0 {
 					m.SearchText = m.SearchText[:len(m.SearchText)-1]
@@ -159,14 +129,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "i":
-			m.InputMode = ModeInsert
+			m.InputMode = utils.ModeInsert
 		case "q", "ctrl+c":
 			return m, tea.Quit
 
 		case "j", "down":
-			if m.AppState == StateResults {
+			if m.AppState == utils.StateResults {
 				maxIndex := 0
-				if m.SearchType == SearchRepo {
+				if m.SearchType == utils.SearchRepo {
 					maxIndex = len(m.Results.Repos.Items) - 1
 				} else {
 					maxIndex = len(m.Results.Users.Items) - 1
@@ -178,21 +148,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "k", "up":
-			if m.AppState == StateResults && m.ResultCursor > 0 {
+			if m.AppState == utils.StateResults && m.ResultCursor > 0 {
 				m.ResultCursor--
 			}
 
 		case "enter":
 
-			if m.AppState == StateResults {
-				m.AppState = StateMenu
-				m.ActionMenu.Options = getMenuOptions(m.SearchType)
+			if m.AppState == utils.StateResults {
+				m.AppState = utils.StateMenu
+				m.ActionMenu.Options = utils.GetMenuOptions(m.SearchType)
 				m.ActionMenu.Cursor = 0
 			}
 
 		case "esc":
-			if m.AppState == StateResults {
-				m.AppState = StateStart
+			if m.AppState == utils.StateResults {
+				m.AppState = utils.StateStart
 
 			}
 		}
@@ -200,7 +170,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) View() string {
 	if m.Width == 0 {
 		return "loading..."
 	}
@@ -208,7 +177,7 @@ func (m Model) View() string {
 	tabRepo := styleItem.Copy().Foreground(colDim).Render("Repository")
 	tabUser := styleItem.Copy().Foreground(colDim).Render("User")
 
-	if m.SearchType == SearchRepo {
+	if m.SearchType == utils.SearchRepo {
 		tabRepo = styleSelected.Render("Repository")
 	} else {
 		tabUser = styleSelected.Render("User")
@@ -219,12 +188,12 @@ func (m Model) View() string {
 	var content string
 	availableHeight := m.Height - 10
 
-	if m.AppState == StateStart {
+	if m.AppState == utils.StateStart {
 		content = lipgloss.Place(m.Width-4, availableHeight, lipgloss.Center, lipgloss.Center, Logo)
 	} else {
 		var rows []string
 
-		if m.SearchType == SearchRepo {
+		if m.SearchType == utils.SearchRepo {
 			for i, repo := range m.Results.Repos.Items {
 				cursor := "  "
 				style := styleItem
@@ -269,12 +238,12 @@ func (m Model) View() string {
 	}
 
 	borderCol := colSubtle
-	if m.InputMode == ModeInsert {
+	if m.InputMode == utils.ModeInsert {
 		borderCol = colHighlight
 	}
 
 	barText := m.SearchText
-	if m.InputMode == ModeInsert {
+	if m.InputMode == utils.ModeInsert {
 		barText += "█"
 	}
 
@@ -289,7 +258,7 @@ func (m Model) View() string {
 		searchBar,
 	)
 
-	if m.AppState == StateMenu {
+	if m.AppState == utils.StateMenu {
 		var menuRows []string
 		for i, opt := range m.ActionMenu.Options {
 			prefix := "  "
