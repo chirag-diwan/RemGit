@@ -1,0 +1,14 @@
+[?25l[?2004h╔═══════╗
+║       ║
+║       ║
+║  ╭─╮  ║
+║  │ │  ║
+║  ╰─╯  ║
+║       ║
+║       ║
+╚═══════╝[2K[?2004l[?25h[?1002l[?1003l[?1006lCaught panic:
+
+runtime error: invalid memory address or nil pointer dereference
+
+Restoring terminal...
+

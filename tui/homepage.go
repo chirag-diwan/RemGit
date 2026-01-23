@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -19,15 +17,14 @@ var (
 		Align(lipgloss.Center).
 		Align(lipgloss.Center).
 		Padding(2)
+	heading = lipgloss.NewStyle().
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(colHighlight).
+		Foreground(colHighlight).
+		Align(lipgloss.Center)
 )
 
-var Logo = `
-██████  ███████ ███    ███  ██████  ██ ████████ 
-██   ██ ██      ████  ████ ██       ██    ██    
-██████  █████   ██ ████ ██ ██   ███ ██    ██    
-██   ██ ██      ██  ██  ██ ██    ██ ██    ██    
-██   ██ ███████ ██      ██  ██████  ██    ██    
-`
+var Logo = "██████  ███████ ███    ███  ██████  ██ ████████\n██   ██ ██      ████  ████ ██       ██    ██   \n██████  █████   ██ ████ ██ ██   ███ ██    ██   \n██   ██ ██      ██  ██  ██ ██    ██ ██    ██   \n██   ██ ███████ ██      ██  ██████  ██    ██   "
 
 type HomePage struct {
 	Logo   string
@@ -60,19 +57,17 @@ func (model HomePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (model HomePage) View() string {
 	message := `
 
-	Press S to search user or repository :)
+Press S to search user or repository :)
 
-	Press h for help
+Press h for help
 
-	You can disable this screen in config files (~/.remgit.conf)
-	
+You can disable this screen in config files (~/.remgit.conf)
 	`
-	content := fmt.Sprintf("%s \n %s \n", Logo, message)
 	return lipgloss.Place(
 		model.Width,
 		model.Height,
 		lipgloss.Center,
 		lipgloss.Center,
-		window.Height(model.Height).Width(model.Width).Render(content),
+		window.Height(model.Height).Width(model.Width).Render(heading.Render(Logo)+message),
 	)
 }
