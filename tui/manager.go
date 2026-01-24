@@ -37,6 +37,7 @@ type UserLoaded struct {
 
 type NavMsg struct {
 	to       int
+	from     int
 	userdata githubapi.UserSummary
 	repodata githubapi.Repository
 }
@@ -78,12 +79,12 @@ func (m Manager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case SearchPage:
 			m.page = NewSearchPageModel()
-
+			return m, m.page.Init()
 		case RepoPage:
-			m.page = NewRepoPageModel(msg.repodata)
+			m.page = NewRepoPageModel(msg.repodata, msg.userdata, msg.from)
 
 		case UserPage:
-			m.page = NewUserPageModel(msg.userdata)
+			m.page = NewUserPageModel(msg.userdata, msg.from)
 			return m, m.page.Init()
 		}
 		return m, nil

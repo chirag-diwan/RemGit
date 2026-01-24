@@ -3,8 +3,11 @@ package githubapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
+
+	git "github.com/go-git/go-git/v5"
 )
 
 type License struct {
@@ -132,6 +135,16 @@ type RepoSearchResponse struct {
 	TotalCount        int          `json:"total_count"`
 	IncompleteResults bool         `json:"incomplete_results"`
 	Items             []Repository `json:"items"`
+}
+
+func CloneURL(url string, path string, Progress *io.Writer) {
+	_, err := git.PlainClone(path, false, &git.CloneOptions{
+		URL:      url,
+		Progress: *Progress,
+	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func GetRepoFromUrl(url string) []Repository {

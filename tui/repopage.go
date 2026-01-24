@@ -52,6 +52,8 @@ type RepoPageModel struct {
 	Width       int
 	Height      int
 	CurrentRepo githubapi.Repository
+	CameFrom    int
+	UserData    githubapi.UserSummary
 }
 
 func (m RepoPageModel) SetRepoData(data githubapi.Repository) RepoPageModel {
@@ -59,9 +61,11 @@ func (m RepoPageModel) SetRepoData(data githubapi.Repository) RepoPageModel {
 	return m
 }
 
-func NewRepoPageModel(data githubapi.Repository) RepoPageModel {
+func NewRepoPageModel(data githubapi.Repository, userdata githubapi.UserSummary, camefrom int) RepoPageModel {
 	return RepoPageModel{
 		CurrentRepo: data,
+		CameFrom:    camefrom,
+		UserData:    userdata,
 	}
 }
 
@@ -78,7 +82,7 @@ func (m RepoPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "backspace":
 			return m, func() tea.Msg {
-				return NavMsg{to: SearchPage}
+				return NavMsg{to: m.CameFrom, from: RepoPage, repodata: m.CurrentRepo, userdata: m.UserData}
 			}
 		}
 	}
@@ -97,7 +101,6 @@ func formatDate(t time.Time) string {
 }
 
 func (m RepoPageModel) View() string {
-
 	fullName := titleStyle.Render(m.CurrentRepo.FullName)
 
 	visibility := "Public"

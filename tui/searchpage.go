@@ -2,6 +2,11 @@ package tui
 
 import (
 	"fmt"
+	"io"
+	"strings"
+
+	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,6 +27,33 @@ const (
 const (
 	ItemsPerPage = 4
 )
+
+type progressMsg float64
+
+type progressWriter struct {
+	ch chan float64
+}
+
+func (pw *progressWriter) Write(p []byte) (int, error) {
+	if pw.ch != nil {
+		pw.ch <- 0.05 // Increment by 5% per write for demonstration
+	}
+	return len(p), nil
+}
+
+// Command to wait for data on the channel
+func waitForProgress(ch chan float64) tea.Cmd {
+	return func() tea.Msg {
+		if ch == nil {
+			return nil
+		}
+		p, ok := <-ch
+		if !ok {
+			return nil
+		}
+		return progressMsg(p)
+	}
+}
 
 var (
 	colAccent  = lipgloss.Color("212")
@@ -78,8 +110,17 @@ type SearchPageModel struct {
 	Cursor      int
 	WindowStart int
 
-	Width  int
-	Height int
+	Width   int
+	Height  int
+	Spinner spinner.Model
+	Loading bool
+
+	CloneProgress io.Writer
+
+	// --- Added Progress Fields ---
+	ProgressBar  progress.Model
+	IsCloning    bool
+	progressChan chan float64
 }
 
 func NewSearchPageModel() SearchPageModel {
@@ -88,6 +129,17 @@ func NewSearchPageModel() SearchPageModel {
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 50
+
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
+	// Initialize Progress Bar
+	prog := progress.New(
+		progress.WithDefaultGradient(),
+		progress.WithWidth(40),
+		progress.WithoutPercentage(),
+	)
 
 	return SearchPageModel{
 		Mode:        SearchMode,
@@ -98,6 +150,10 @@ func NewSearchPageModel() SearchPageModel {
 		WindowStart: 0,
 		Width:       20,
 		Height:      20,
+		Spinner:     s,
+		Loading:     false,
+		ProgressBar: prog,
+		IsCloning:   false,
 	}
 }
 
@@ -191,7 +247,7 @@ func (m SearchPageModel) renderUserCard(user githubapi.UserSummary, isActive boo
 }
 
 func (m SearchPageModel) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.Batch(textinput.Blink, m.Spinner.Tick)
 }
 
 func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -202,8 +258,34 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
+		m.ProgressBar.Width = msg.Width - 10
 
+	// --- Handle Progress Bar Animation ---
+	case progress.FrameMsg:
+		progressModel, cmd := m.ProgressBar.Update(msg)
+		m.ProgressBar = progressModel.(progress.Model)
+		return m, cmd
+
+	// --- Handle Progress Update from Writer ---
+	case progressMsg:
+		if m.ProgressBar.Percent() >= 1.0 {
+			// Done cloning
+			m.IsCloning = false
+			m.ProgressBar.SetPercent(0)
+			return m, nil
+		}
+		// Increment progress
+		cmd := m.ProgressBar.IncrPercent(float64(msg))
+		// Continue listening to channel
+		return m, tea.Batch(cmd, waitForProgress(m.progressChan))
+
+	case spinner.TickMsg:
+		if m.Loading {
+			m.Spinner, cmd = m.Spinner.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	case utils.SearchResult:
+		m.Loading = false
 		m.Result = msg
 		m.Cursor = 0
 		m.WindowStart = 0
@@ -221,6 +303,20 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Mode = SearchMode
 				m.SearchBar.Focus()
 				return m, textinput.Blink
+			case "c":
+				if m.SearchType == RepoMode && !m.IsCloning {
+					m.IsCloning = true
+					m.ProgressBar.SetPercent(0)
+
+					m.progressChan = make(chan float64)
+					pw := &progressWriter{ch: m.progressChan}
+					m.CloneProgress = pw
+					nameArray := strings.Split(m.Result.Repos.Items[m.Cursor].FullName, "/")
+					name := nameArray[len(nameArray)-1]
+					go githubapi.CloneURL(m.Result.Repos.Items[m.Cursor].CloneURL, name, &m.CloneProgress)
+
+					return m, waitForProgress(m.progressChan)
+				}
 			case "tab":
 				if m.SearchType == UserMode {
 					m.SearchType = RepoMode
@@ -232,11 +328,11 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				if m.SearchType == UserMode {
 					return m, func() tea.Msg {
-						return NavMsg{to: UserPage, userdata: m.Result.Users.Items[m.Cursor]}
+						return NavMsg{to: UserPage, from: SearchPage, userdata: m.Result.Users.Items[m.Cursor]}
 					}
 				} else {
 					return m, func() tea.Msg {
-						return NavMsg{to: RepoPage, repodata: m.Result.Repos.Items[m.Cursor]}
+						return NavMsg{to: RepoPage, from: SearchPage, repodata: m.Result.Repos.Items[m.Cursor]}
 					}
 				}
 			}
@@ -247,7 +343,8 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.Mode = NavigationMode
 				m.SearchBar.Blur()
-				return m, m.getQueryResult(m.SearchBar.Value())
+				m.Loading = true
+				return m, tea.Batch(m.getQueryResult(m.SearchBar.Value()), m.Spinner.Tick)
 			case "esc":
 				m.Mode = NavigationMode
 				m.SearchBar.Blur()
@@ -269,6 +366,14 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m SearchPageModel) View() string {
+
+	if m.Loading {
+		if m.SearchType == UserMode {
+			return fmt.Sprintf("%s Loading Users ...", m.Spinner.View())
+		} else {
+			return fmt.Sprintf("%s Loading Repos ...", m.Spinner.View())
+		}
+	}
 
 	var tUser, tRepo string
 	if m.SearchType == UserMode {
@@ -316,11 +421,24 @@ func (m SearchPageModel) View() string {
 
 	listView := lipgloss.JoinVertical(lipgloss.Left, listItems...)
 
+	// --- Added Progress Bar View Logic ---
+	var footerStatus string
+	if m.IsCloning {
+		footerStatus = lipgloss.JoinVertical(lipgloss.Left,
+			styleDesc.Render("Cloning Repository..."),
+			m.ProgressBar.View(),
+		)
+	} else {
+		footerStatus = styleDesc.Render("Nothing to clone")
+	}
+	// -------------------------------------
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		lipgloss.NewStyle().MarginBottom(1).Render(header),
 		lipgloss.NewStyle().MarginBottom(1).Render(sBar),
 		listView,
+		lipgloss.NewStyle().MarginTop(2).Render(footerStatus), // Added to main content
 	)
 
 	return lipgloss.JoinVertical(

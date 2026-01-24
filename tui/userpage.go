@@ -45,9 +45,10 @@ type UserPageModel struct {
 	windowStart int
 	loading     bool
 	spinner     spinner.Model
+	CameFrom    int
 }
 
-func NewUserPageModel(data githubapi.UserSummary) UserPageModel {
+func NewUserPageModel(data githubapi.UserSummary, camefrom int) UserPageModel {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -57,6 +58,7 @@ func NewUserPageModel(data githubapi.UserSummary) UserPageModel {
 		repos:           []githubapi.Repository{},
 		loading:         true,
 		spinner:         s,
+		CameFrom:        camefrom,
 	}
 }
 
@@ -121,6 +123,22 @@ func (model UserPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.cursor--
 				if model.cursor < model.windowStart {
 					model.windowStart--
+				}
+			}
+		case "enter":
+			return model, func() tea.Msg {
+				return NavMsg{
+					to:       RepoPage,
+					from:     UserPage,
+					repodata: model.repos[model.cursor],
+					userdata: model.currentUserData,
+				}
+			}
+		case "backspace":
+			return model, func() tea.Msg {
+				return NavMsg{
+					to:   SearchPage,
+					from: UserPage,
 				}
 			}
 		}

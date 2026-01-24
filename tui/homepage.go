@@ -38,7 +38,7 @@ func (model HomePageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return model, tea.Quit
 		case "s":
 			return model, func() tea.Msg {
-				return NavMsg{to: SearchPage}
+				return NavMsg{to: SearchPage, from: HomePage}
 			}
 		case "c":
 		}
