@@ -2,18 +2,18 @@
 
 RemGit is a GitCli that lets you search and make repos , search users , clone repos all from within your terminal 
 
-[](images/image1.png "Homepage")
-[](images/image2.png "Repository search")
-[](images/image3.png "Repo list after search")
-[](images/image4.png "Repo display")
-[](images/image5.png "User search")
-[](images/image6.png "User list display")
-[](images/image7.png "User repo display")
+!["Homepage"](images/image1.png)
+!["Repository search"](images/image2.png)
+!["Repo list after search"](images/image3.png)
+!["Repo display"](images/image4.png)
+!["User search"](images/image5.png)
+!["User list display"](images/image6.png)
+!["User repo display"](images/image7.png)
 
 
 ## Installation
 
-*** Using Install Script
+***Using Install Script***
 ```bash
 git clone https://github.com/chirag-diwan/RemGit.git
 cd RemGit
@@ -22,7 +22,7 @@ chmod +x install.sh && ./install.sh
 ```
 
 
-*** Manual Building 
+***Manual Building***
 ```bash
 git clone https://github.com/chirag-diwan/RemGit.git
 
