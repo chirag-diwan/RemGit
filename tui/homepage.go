@@ -5,12 +5,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	colSubtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
-	colHighlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
-	colText      = lipgloss.AdaptiveColor{Light: "#333333", Dark: "#E0E0E0"}
-)
-
 var Logo = "██████  ███████ ███    ███  ██████  ██ ████████\n██   ██ ██      ████  ████ ██       ██    ██   \n██████  █████   ██ ████ ██ ██   ███ ██    ██   \n██   ██ ██      ██  ██  ██ ██    ██ ██    ██   \n██   ██ ███████ ██      ██  ██████  ██    ██   "
 
 type HomePageModel struct {

@@ -7,16 +7,24 @@ import (
 )
 
 var (
+	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
+	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
+	text      = lipgloss.AdaptiveColor{Light: "#333333", Dark: "#FFFFFF"}
+	warning   = lipgloss.AdaptiveColor{Light: "#F1F1F1", Dark: "#CD5C5C"}
+	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
+)
+
+var (
 	window = lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(colSubtle).
+		BorderForeground(subtle).
 		Align(lipgloss.Center).
 		Align(lipgloss.Center).
 		Padding(2)
 	heading = lipgloss.NewStyle().
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(colHighlight).
-		Foreground(colHighlight).
+		BorderForeground(highlight).
+		Foreground(highlight).
 		Align(lipgloss.Center)
 )
 
@@ -81,8 +89,8 @@ func (m Manager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.page = NewSearchPageModel()
 			return m, m.page.Init()
 		case RepoPage:
-			m.page = NewRepoPageModel(msg.repodata, msg.userdata, msg.from)
-
+			m.page = NewRepoPageModel(msg.repodata, msg.userdata, msg.from, m.Width, m.Height)
+			return m, m.page.Init()
 		case UserPage:
 			m.page = NewUserPageModel(msg.userdata, msg.from)
 			return m, m.page.Init()

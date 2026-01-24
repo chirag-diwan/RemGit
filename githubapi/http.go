@@ -1,6 +1,7 @@
 package githubapi
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,10 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 )
+
+type Readme struct {
+	Content string `json:"content"`
+}
 
 type License struct {
 	Key    string `json:"key"`
@@ -207,4 +212,26 @@ func GetRepos(query string) RepoSearchResponse {
 		panic(err)
 	}
 	return repos
+}
+
+func GetReadme(repoData Repository) string {
+	Owner := repoData.Owner.Login
+	name := repoData.Name
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", Owner, name)
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	var readme Readme
+	err = json.NewDecoder(resp.Body).Decode(&readme)
+	if err != nil {
+		panic(err)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(readme.Content)
+	if err != nil {
+		panic(err)
+	}
+	return string(decoded)
 }
