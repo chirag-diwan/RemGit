@@ -11,17 +11,14 @@ import (
 )
 
 var (
-	CurrentRepo githubapi.Repository
-)
-
-var (
 	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 	text      = lipgloss.AdaptiveColor{Light: "#333333", Dark: "#FFFFFF"}
 	warning   = lipgloss.AdaptiveColor{Light: "#F1F1F1", Dark: "#CD5C5C"}
 	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
 
-	docStyle = lipgloss.NewStyle().Padding(1, 2)
+	docStyle  = lipgloss.NewStyle().Padding(1, 2)
+	descStyle = lipgloss.NewStyle().Foreground(colText).Italic(true)
 
 	titleStyle = lipgloss.NewStyle().
 			Foreground(highlight).
@@ -51,28 +48,38 @@ var (
 			Bold(true)
 )
 
-type RepoPage struct {
-	Width  int
-	Height int
+type RepoPageModel struct {
+	Width       int
+	Height      int
+	CurrentRepo githubapi.Repository
 }
 
-func NewRepoPage() RepoPage {
-	return RepoPage{}
+func (m RepoPageModel) SetRepoData(data githubapi.Repository) RepoPageModel {
+	m.CurrentRepo = data
+	return m
 }
 
-func (m RepoPage) Init() tea.Cmd {
+func NewRepoPageModel(data githubapi.Repository) RepoPageModel {
+	return RepoPageModel{
+		CurrentRepo: data,
+	}
+}
+
+func (m RepoPageModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m RepoPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m RepoPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc", "q", "backspace":
-			return m, tea.Quit
+		case "backspace":
+			return m, func() tea.Msg {
+				return NavMsg{to: SearchPage}
+			}
 		}
 	}
 	return m, nil
@@ -89,31 +96,31 @@ func formatDate(t time.Time) string {
 	return t.Format("02 Jan 2006")
 }
 
-func (m RepoPage) View() string {
+func (m RepoPageModel) View() string {
 
-	fullName := titleStyle.Render(CurrentRepo.FullName)
+	fullName := titleStyle.Render(m.CurrentRepo.FullName)
 
 	visibility := "Public"
-	if CurrentRepo.Private {
+	if m.CurrentRepo.Private {
 		visibility = "Private"
 	}
 	visBadge := statusBadge.Render(visibility)
 
-	lang := safeStr(CurrentRepo.Language, "Unknown")
+	lang := safeStr(m.CurrentRepo.Language, "Unknown")
 	langBadge := lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Render(lang)
 
 	header := lipgloss.JoinHorizontal(lipgloss.Center, fullName, "  ", visBadge, "  ", langBadge)
 
-	description := descStyle.Width(50).Render(safeStr(CurrentRepo.Description, "No description provided."))
+	description := descStyle.Width(50).Render(safeStr(m.CurrentRepo.Description, "No description provided."))
 
 	var topicBlock string
-	if len(CurrentRepo.Topics) > 0 {
+	if len(m.CurrentRepo.Topics) > 0 {
 
 		limit := 5
-		if len(CurrentRepo.Topics) < 5 {
-			limit = len(CurrentRepo.Topics)
+		if len(m.CurrentRepo.Topics) < 5 {
+			limit = len(m.CurrentRepo.Topics)
 		}
-		topicBlock = "\n" + labelStyle.Render("Topics: ") + strings.Join(CurrentRepo.Topics[:limit], ", ")
+		topicBlock = "\n" + labelStyle.Render("Topics: ") + strings.Join(m.CurrentRepo.Topics[:limit], ", ")
 	}
 
 	leftCol := lipgloss.JoinVertical(
@@ -121,8 +128,8 @@ func (m RepoPage) View() string {
 		description,
 		topicBlock,
 		"\n",
-		labelStyle.Render("Created: ")+formatDate(CurrentRepo.CreatedAt),
-		labelStyle.Render("Updated: ")+formatDate(CurrentRepo.UpdatedAt),
+		labelStyle.Render("Created: ")+formatDate(m.CurrentRepo.CreatedAt),
+		labelStyle.Render("Updated: ")+formatDate(m.CurrentRepo.UpdatedAt),
 	)
 
 	leftBox := boxStyle.Width(55).Height(12).Render(leftCol)
@@ -133,18 +140,18 @@ func (m RepoPage) View() string {
 
 	statsContent := lipgloss.JoinVertical(
 		lipgloss.Left,
-		makeStat("Stars", "★", CurrentRepo.StargazersCount),
-		makeStat("Forks", "⑂", CurrentRepo.ForksCount),
-		makeStat("Issues", "◎", CurrentRepo.OpenIssuesCount),
-		makeStat("Watchers", "👁", CurrentRepo.WatchersCount),
+		makeStat("Stars", "★", m.CurrentRepo.StargazersCount),
+		makeStat("Forks", "⑂", m.CurrentRepo.ForksCount),
+		makeStat("Issues", "◎", m.CurrentRepo.OpenIssuesCount),
+		makeStat("Watchers", "👁", m.CurrentRepo.WatchersCount),
 		"\n",
-		labelStyle.Render("Size: ")+fmt.Sprintf("%d KB", CurrentRepo.Size),
-		labelStyle.Render("Branch: ")+CurrentRepo.DefaultBranch,
+		labelStyle.Render("Size: ")+fmt.Sprintf("%d KB", m.CurrentRepo.Size),
+		labelStyle.Render("Branch: ")+m.CurrentRepo.DefaultBranch,
 	)
 
 	rightBox := boxStyle.Width(25).Height(12).Render(statsContent)
 
-	cloneLink := lipgloss.NewStyle().Foreground(lipgloss.Color("#43BF6D")).Render(CurrentRepo.CloneURL)
+	cloneLink := lipgloss.NewStyle().Foreground(lipgloss.Color("#43BF6D")).Render(m.CurrentRepo.CloneURL)
 	footer := lipgloss.JoinVertical(
 		lipgloss.Left,
 		labelStyle.Render("HTTP Clone:"),
@@ -160,23 +167,11 @@ func (m RepoPage) View() string {
 		"\n",
 		middleSection,
 		footerBox,
-		"\n"+lipgloss.NewStyle().Foreground(subtle).Render("(esc to go back)"),
+		"\n"+lipgloss.NewStyle().Foreground(subtle).Render("(backspace to go back)"),
 	)
 
-	return lipgloss.Place(
-		m.Width,
-		m.Height,
-		lipgloss.Center,
+	return lipgloss.JoinVertical(
 		lipgloss.Center,
 		ui,
 	)
-}
-
-func showRepoPage(repo githubapi.Repository) {
-	CurrentRepo = repo
-	searchPage := NewRepoPage()
-	p := tea.NewProgram(searchPage)
-	if _, err := p.Run(); err != nil {
-		panic(err)
-	}
 }

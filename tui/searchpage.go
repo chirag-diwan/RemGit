@@ -2,25 +2,12 @@ package tui
 
 import (
 	"fmt"
-
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chirag-diwan/RemGit/githubapi"
 	"github.com/chirag-diwan/RemGit/utils"
 )
-
-/*
-States{
-	Navigation
-	User
-	Repository
-	Search
-}
-User Repository
-(Search bar)TextInput
-space to show search result
-*/
 
 const (
 	NavigationMode int = iota
@@ -32,308 +19,312 @@ const (
 	RepoMode
 )
 
-var (
-	colWhite = lipgloss.Color("255")
-
-	searchBar = lipgloss.NewStyle().
-			Align(lipgloss.Center).
-			Foreground(colText).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colHighlight).
-			Padding(0, 1)
-
-	tabBar = lipgloss.NewStyle().
-		PaddingTop(1).
-		PaddingBottom(1).
-		Align(lipgloss.Center)
-
-	activeTab = lipgloss.NewStyle().
-			Foreground(colHighlight).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colHighlight).
-			Padding(0, 2).
-			Bold(true)
-
-	inactiveTab = lipgloss.NewStyle().
-			Foreground(colText).
-			Border(lipgloss.HiddenBorder()).
-			Padding(0, 2)
-
-	tabGap = lipgloss.NewStyle().Width(2)
-
-	itemStyle = lipgloss.NewStyle().
-			PaddingLeft(2).
-			Border(lipgloss.HiddenBorder(), false, false, false, true)
-
-	selectedItemStyle = lipgloss.NewStyle().
-				PaddingLeft(2).
-				Foreground(colHighlight).
-				Border(lipgloss.NormalBorder(), false, false, false, true).
-				BorderForeground(colHighlight)
-
-	repoNameStyle = lipgloss.NewStyle().Bold(true)
-	descStyle     = lipgloss.NewStyle().Foreground(colText).Italic(true)
-	statStyle     = lipgloss.NewStyle().Foreground(colText).MarginRight(2)
+const (
+	ItemsPerPage = 4
 )
 
-type searchPage struct {
+var (
+	colAccent  = lipgloss.Color("212")
+	colSurface = lipgloss.Color("235")
+
+	styleSearchBar = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colAccent).
+			Padding(0, 1).
+			Width(60)
+
+	styleSearchDimmed = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(colSubtle).
+				Padding(0, 1).
+				Width(60)
+
+	styleTabActive = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(colAccent).
+			Foreground(colAccent).
+			Bold(true).
+			Padding(0, 2)
+
+	styleTabInactive = lipgloss.NewStyle().
+				Foreground(colSubtle).
+				Padding(0, 2)
+
+	styleCardActive = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colAccent).
+			Padding(0, 1).
+			MarginBottom(1).
+			Width(60)
+
+	styleCardInactive = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(colSubtle).
+				Padding(0, 1).
+				MarginBottom(1).
+				Width(60)
+
+	styleName  = lipgloss.NewStyle().Bold(true).Foreground(colText)
+	styleDesc  = lipgloss.NewStyle().Italic(true).Foreground(colSubtle)
+	styleStats = lipgloss.NewStyle().Foreground(colAccent)
+)
+
+type SearchPageModel struct {
 	Mode       int
 	SearchType int
 	SearchBar  textinput.Model
 	Result     utils.SearchResult
-	Cursor     int
-	Width      int
-	Height     int
+
+	Cursor      int
+	WindowStart int
+
+	Width  int
+	Height int
 }
 
-func NewSearchPage() searchPage {
-	txtinput := textinput.New()
-	txtinput.Placeholder = "Search Github..."
-	txtinput.Focus()
-	txtinput.Cursor.Blink = true
-	txtinput.Width = 40
-	return searchPage{
-		SearchMode,
-		UserMode,
-		txtinput,
-		utils.SearchResult{},
-		0,
-		10,
-		10,
+func NewSearchPageModel() SearchPageModel {
+	ti := textinput.New()
+	ti.Placeholder = "Search GitHub..."
+	ti.Focus()
+	ti.CharLimit = 156
+	ti.Width = 50
+
+	return SearchPageModel{
+		Mode:        SearchMode,
+		SearchType:  RepoMode,
+		SearchBar:   ti,
+		Result:      utils.SearchResult{},
+		Cursor:      0,
+		WindowStart: 0,
+		Width:       20,
+		Height:      20,
 	}
 }
 
-func (model searchPage) getQueryResult(query string) tea.Cmd {
+func (m SearchPageModel) getQueryResult(query string) tea.Cmd {
 	return func() tea.Msg {
 
-		var res utils.SearchResult
-		if model.SearchType == UserMode {
-			res = utils.SearchResult{Users: githubapi.GetUsers(query), Repos: githubapi.RepoSearchResponse{}}
-		} else {
-			res = utils.SearchResult{Users: githubapi.UserSearchResponse{}, Repos: githubapi.GetRepos(query)}
+		if m.SearchType == UserMode {
+			return utils.SearchResult{Users: githubapi.GetUsers(query)}
 		}
-
-		return res
+		return utils.SearchResult{Repos: githubapi.GetRepos(query)}
 	}
 }
 
-func (model searchPage) showResult() string {
-	var listContent []string
-
-	safeStr := func(s *string) string {
-		if s == nil {
-			return ""
-		}
-		return *s
+func (m SearchPageModel) getListLength() int {
+	if m.SearchType == UserMode {
+		return len(m.Result.Users.Items)
 	}
-
-	if model.SearchType == UserMode {
-		users := model.Result.Users.Items
-		if len(users) == 0 {
-			return lipgloss.NewStyle().Padding(2).Foreground(colText).Render("No users found.")
-		}
-
-		for i, user := range users {
-
-			style := itemStyle
-			cursorStr := "  "
-			if i == model.Cursor {
-				style = selectedItemStyle
-				cursorStr = "> "
-			}
-
-			row := fmt.Sprintf("%s%s", cursorStr, user.Login)
-			listContent = append(listContent, style.Render(row))
-		}
-
-	} else {
-		repos := model.Result.Repos.Items
-		if len(repos) == 0 {
-			return lipgloss.NewStyle().Padding(2).Foreground(colText).Render("No repositories found.")
-		}
-
-		for i, repo := range repos {
-
-			containerStyle := itemStyle
-			if i == model.Cursor {
-				containerStyle = selectedItemStyle
-			}
-
-			name := repoNameStyle.Render(repo.FullName)
-
-			desc := safeStr(repo.Description)
-			if len(desc) > 60 {
-				desc = desc[:57] + "..."
-			}
-			description := descStyle.Render(desc)
-
-			lang := safeStr(repo.Language)
-			if lang == "" {
-				lang = "Text"
-			}
-			stats := statStyle.Render(fmt.Sprintf("★ %d  •  %s", repo.StargazersCount, lang))
-
-			block := lipgloss.JoinVertical(
-				lipgloss.Left,
-				name,
-				description,
-				stats,
-			)
-
-			listContent = append(listContent, containerStyle.Render(block))
-			listContent = append(listContent, " ")
-		}
-	}
-
-	return lipgloss.JoinVertical(lipgloss.Left, listContent...)
+	return len(m.Result.Repos.Items)
 }
 
-func (model searchPage) getTabBarContent() string {
-	var userTab, repoTab string
-
-	if model.SearchType == UserMode {
-		userTab = activeTab.Render("User")
-		repoTab = inactiveTab.Render("Repo")
-	} else {
-		userTab = inactiveTab.Render("User")
-		repoTab = activeTab.Render("Repo")
-	}
-
-	return lipgloss.JoinHorizontal(
-		lipgloss.Bottom,
-		userTab,
-		tabGap.Render(""),
-		repoTab,
-	)
-}
-
-func (model searchPage) GetListLength() int {
-	if model.SearchType == UserMode {
-		return len(model.Result.Users.Items)
-	}
-	return len(model.Result.Repos.Items)
-}
-
-func (model searchPage) clampCursor() {
-	maxLength := model.GetListLength()
-	if maxLength == 0 {
-		model.Cursor = 0
+func (m *SearchPageModel) moveCursor(step int) {
+	total := m.getListLength()
+	if total == 0 {
 		return
 	}
-	if model.Cursor >= maxLength {
-		model.Cursor = maxLength - 1
-	} else if model.Cursor < 0 {
-		model.Cursor = 0
+
+	newCursor := m.Cursor + step
+
+	if newCursor < 0 {
+		newCursor = 0
+	} else if newCursor >= total {
+		newCursor = total - 1
+	}
+	m.Cursor = newCursor
+
+	if m.Cursor >= m.WindowStart+ItemsPerPage {
+		m.WindowStart = m.Cursor - ItemsPerPage + 1
+	}
+
+	if m.Cursor < m.WindowStart {
+		m.WindowStart = m.Cursor
 	}
 }
 
-func (model searchPage) switchMode() searchPage {
-	if model.SearchType == UserMode {
-		model.SearchType = RepoMode
+func (m SearchPageModel) renderRepoCard(repo githubapi.Repository, isActive bool) string {
+	style := styleCardInactive
+	if isActive {
+		style = styleCardActive
+	}
+
+	desc := ""
+	if repo.Description != nil {
+		desc = *repo.Description
+		if len(desc) > 50 {
+			desc = desc[:47] + "..."
+		}
 	} else {
-		model.SearchType = UserMode
+		desc = "No description provided."
 	}
-	model.Cursor = 0
-	return model
+
+	lang := "Text"
+	if repo.Language != nil {
+		lang = *repo.Language
+	}
+
+	header := lipgloss.JoinHorizontal(lipgloss.Center,
+		styleName.Render(repo.FullName),
+		lipgloss.NewStyle().MarginLeft(2).Render(styleStats.Render(fmt.Sprintf("★ %d", repo.StargazersCount))),
+	)
+
+	body := styleDesc.Render(desc)
+	footer := lipgloss.NewStyle().Foreground(colSubtle).Render(fmt.Sprintf("%s • Updated %s", lang, repo.UpdatedAt.Format("02 Jan")))
+
+	content := lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
+	return style.Render(content)
 }
 
-func (model searchPage) Init() tea.Cmd {
+func (m SearchPageModel) renderUserCard(user githubapi.UserSummary, isActive bool) string {
+	style := styleCardInactive
+	if isActive {
+		style = styleCardActive
+	}
+
+	content := lipgloss.JoinHorizontal(lipgloss.Center,
+		lipgloss.NewStyle().Foreground(colAccent).Render("(o) "),
+		styleName.Render(user.Login),
+		lipgloss.NewStyle().MarginLeft(2).Foreground(colSubtle).Render("View Profile →"),
+	)
+
+	return style.Render(content)
+}
+
+func (m SearchPageModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (model searchPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
+func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-
 	case tea.WindowSizeMsg:
-		model.Width = msg.Width - 2
-		model.Height = msg.Height - 2
+		m.Width = msg.Width
+		m.Height = msg.Height
 
 	case utils.SearchResult:
-		model.Result = msg
-		model.Cursor = 0
-		return model, nil
+		m.Result = msg
+		m.Cursor = 0
+		m.WindowStart = 0
+		return m, nil
 
 	case tea.KeyMsg:
-		switch model.Mode {
 
-		case NavigationMode:
+		if m.Mode == NavigationMode {
 			switch msg.String() {
-			case "i":
-				model.Mode = SearchMode
-				model.SearchBar.Focus()
-				return model, textinput.Blink
-
-			case "tab":
-				model = model.switchMode()
-
 			case "j", "down":
-				model.Cursor++
-				model.clampCursor()
-
+				m.moveCursor(1)
 			case "k", "up":
-				model.Cursor--
-				model.clampCursor()
-
-			case "enter":
-				if model.SearchType == UserMode {
-
-				} else {
-					showRepoPage(model.Result.Repos.Items[model.Cursor])
-				}
-			case "q", "ctrl+c":
-				return model, tea.Quit
-			}
-
-		case SearchMode:
-			switch msg.String() {
+				m.moveCursor(-1)
+			case "i", "/":
+				m.Mode = SearchMode
+				m.SearchBar.Focus()
+				return m, textinput.Blink
 			case "tab":
-				model = model.switchMode()
-				return model, nil
-
-			case "esc":
-				model.Mode = NavigationMode
-				model.SearchBar.Blur()
-				return model, nil
-
+				if m.SearchType == UserMode {
+					m.SearchType = RepoMode
+				} else {
+					m.SearchType = UserMode
+				}
+				m.Cursor = 0
+				m.WindowStart = 0
 			case "enter":
-				query := model.SearchBar.Value()
-
-				searchCmd := model.getQueryResult(query)
-				cmds = append(cmds, searchCmd)
-
-				model.SearchBar.Blur()
-				model.Mode = NavigationMode
+				if m.SearchType == UserMode {
+					return m, func() tea.Msg {
+						return NavMsg{to: UserPage, userdata: m.Result.Users.Items[m.Cursor]}
+					}
+				} else {
+					return m, func() tea.Msg {
+						return NavMsg{to: RepoPage, repodata: m.Result.Repos.Items[m.Cursor]}
+					}
+				}
 			}
-			model.SearchBar, cmd = model.SearchBar.Update(msg)
+		}
+
+		if m.Mode == SearchMode {
+			switch msg.String() {
+			case "enter":
+				m.Mode = NavigationMode
+				m.SearchBar.Blur()
+				return m, m.getQueryResult(m.SearchBar.Value())
+			case "esc":
+				m.Mode = NavigationMode
+				m.SearchBar.Blur()
+			case "tab":
+
+				if m.SearchType == UserMode {
+					m.SearchType = RepoMode
+				} else {
+					m.SearchType = UserMode
+				}
+				m.Cursor = 0
+			}
+			m.SearchBar, cmd = m.SearchBar.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 	}
 
-	return model, tea.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
-func (model searchPage) View() string {
-	searchView := searchBar.Render(model.SearchBar.View())
-	tabBarContent := model.getTabBarContent()
+func (m SearchPageModel) View() string {
 
-	listView := model.showResult()
+	var tUser, tRepo string
+	if m.SearchType == UserMode {
+		tUser = styleTabActive.Render("Users")
+		tRepo = styleTabInactive.Render("Repositories")
+	} else {
+		tUser = styleTabInactive.Render("Users")
+		tRepo = styleTabActive.Render("Repositories")
+	}
+	header := lipgloss.JoinHorizontal(lipgloss.Top, tUser, tRepo)
 
-	ui := lipgloss.JoinVertical(
+	var sBar string
+	if m.Mode == SearchMode {
+		sBar = styleSearchBar.Render(m.SearchBar.View())
+	} else {
+		sBar = styleSearchDimmed.Render(m.SearchBar.View())
+	}
+
+	var listItems []string
+
+	if m.getListLength() > 0 {
+
+		endIndex := m.WindowStart + ItemsPerPage
+		if endIndex > m.getListLength() {
+			endIndex = m.getListLength()
+		}
+
+		if m.SearchType == UserMode {
+			subset := m.Result.Users.Items[m.WindowStart:endIndex]
+			for i, item := range subset {
+
+				isSelected := (m.WindowStart + i) == m.Cursor
+				listItems = append(listItems, m.renderUserCard(item, isSelected))
+			}
+		} else {
+			subset := m.Result.Repos.Items[m.WindowStart:endIndex]
+			for i, item := range subset {
+				isSelected := (m.WindowStart + i) == m.Cursor
+				listItems = append(listItems, m.renderRepoCard(item, isSelected))
+			}
+		}
+	} else {
+		listItems = append(listItems, lipgloss.NewStyle().Padding(2).Foreground(colSubtle).Render("No results found."))
+	}
+
+	listView := lipgloss.JoinVertical(lipgloss.Left, listItems...)
+
+	content := lipgloss.JoinVertical(
 		lipgloss.Center,
-		tabBar.Render(tabBarContent),
-		searchView,
-		"\n",
+		lipgloss.NewStyle().MarginBottom(1).Render(header),
+		lipgloss.NewStyle().MarginBottom(1).Render(sBar),
 		listView,
 	)
 
-	return lipgloss.Place(
-		model.Width,
-		model.Height,
+	return lipgloss.JoinVertical(
 		lipgloss.Center,
-		lipgloss.Top,
-		ui,
+		lipgloss.NewStyle().PaddingTop(2).Render(content),
 	)
 }

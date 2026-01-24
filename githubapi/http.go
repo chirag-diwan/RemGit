@@ -134,9 +134,8 @@ type RepoSearchResponse struct {
 	Items             []Repository `json:"items"`
 }
 
-func GetRepoUser(username string) []Repository {
-	baseUrl := fmt.Sprintf("https://api.github.com/users/%s/repos", username)
-	resp, err := http.Get(baseUrl)
+func GetRepoFromUrl(url string) []Repository {
+	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
 	}
