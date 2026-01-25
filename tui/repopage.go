@@ -84,6 +84,8 @@ func fetchReadmeCmd(repo githubapi.Repository) tea.Cmd {
 }
 
 func (m RepoPageModel) Init() tea.Cmd {
+	m.Viewport.SetContent(m.renderFullPage())
+
 	return fetchReadmeCmd(m.CurrentRepo)
 }
 
@@ -131,7 +133,6 @@ func (m RepoPageModel) renderFullPage() string {
 	rightBox := boxStyle.Width(25).Height(12).Render(statsContent)
 	middleSection := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 
-	// --- 3. Footer ---
 	cloneLink := lipgloss.NewStyle().Foreground(lipgloss.Color("#43BF6D")).Render(m.CurrentRepo.CloneURL)
 	footer := lipgloss.JoinVertical(lipgloss.Left, labelStyle.Render("HTTP Clone:"), cloneLink)
 	footerBox := boxStyle.Width(82).Render(footer)
@@ -142,7 +143,7 @@ func (m RepoPageModel) renderFullPage() string {
 	} else {
 		readmeBlock = fmt.Sprintf("\n%s\n\n%s",
 			labelStyle.Render("README.md"),
-			m.ReadmeText, // The raw readme text
+			m.ReadmeText,
 		)
 	}
 	readmeSection := readmeBoxStyle.Width(82).Render(readmeBlock)

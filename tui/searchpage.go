@@ -132,7 +132,6 @@ func NewSearchPageModel() SearchPageModel {
 		progress.WithDefaultGradient(),
 		progress.WithWidth(40),
 		progress.WithoutPercentage(),
-		progress.WithSolidFill(warning.Dark),
 	)
 
 	return SearchPageModel{

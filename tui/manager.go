@@ -3,15 +3,16 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/chirag-diwan/RemGit/config"
 	"github.com/chirag-diwan/RemGit/githubapi"
 )
 
 var (
-	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
-	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
-	text      = lipgloss.AdaptiveColor{Light: "#333333", Dark: "#FFFFFF"}
-	warning   = lipgloss.AdaptiveColor{Light: "#F1F1F1", Dark: "#CD5C5C"}
-	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
+	subtle    = lipgloss.Color("#383838")
+	highlight = lipgloss.Color("#7D56F4")
+	text      = lipgloss.Color("#FFFFFF")
+	warning   = lipgloss.Color("#CD5C5C")
+	special   = lipgloss.Color("#73F59F")
 )
 
 var (
@@ -56,7 +57,13 @@ type Manager struct {
 	Height int
 }
 
-func NewManager() Manager {
+func NewManager(c config.ConfigObj) Manager {
+	subtle = lipgloss.Color(c.Subtle)
+	highlight = lipgloss.Color(c.Highlight)
+	text = lipgloss.Color(c.Text)
+	warning = lipgloss.Color(c.Warning)
+	special = lipgloss.Color(c.Special)
+
 	return Manager{
 		page: NewHomePageModel(),
 	}
