@@ -96,7 +96,9 @@ func (m Manager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.page = NewSearchPageModel()
 			return m, m.page.Init()
 		case RepoPage:
-			m.page = NewRepoPageModel(msg.repodata, msg.userdata, msg.from, m.Width, m.Height)
+			resizeMsg := tea.WindowSizeMsg{Width: m.Width, Height: m.Height}
+			newPage := NewRepoPageModel(msg.repodata, msg.userdata, msg.from, m.Width, m.Height)
+			m.page, _ = newPage.Update(resizeMsg)
 			return m, m.page.Init()
 		case UserPage:
 			m.page = NewUserPageModel(msg.userdata, msg.from)
