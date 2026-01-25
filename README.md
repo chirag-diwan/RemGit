@@ -1,5 +1,7 @@
 # RemGit
 
+![RemGit demo](images/remgit.gif)
+
 RemGit is a GitCli that lets you search and make repos , search users , clone repos all from within your terminal 
 
 !["Homepage"](images/image1.png "Homepage")
