@@ -4,15 +4,18 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-
+	"github.com/charmbracelet/lipgloss"
 	"github.com/chirag-diwan/RemGit/config"
 	"github.com/chirag-diwan/RemGit/tui"
+	"github.com/muesli/termenv"
 )
 
 func main() {
 	tokens := config.Lexer("/home/chirag/.remgit.conf")
 	praser := config.NewPraser(tokens)
 	obj := praser.Prase()
+	fmt.Printf("DEBUG: Subtle: [%s], Highlight: [%s]\n", obj.Subtle, obj.Highlight)
+	lipgloss.SetColorProfile(termenv.TrueColor)
 	Manager := tui.NewManager(obj)
 	p := tea.NewProgram(Manager)
 	if _, err := p.Run(); err != nil {

@@ -27,6 +27,18 @@ var (
 	ItemsPerPage = 4
 )
 
+var (
+	styleSearchBar    lipgloss.Style
+	styleSearchDimmed lipgloss.Style
+	styleTabActive    lipgloss.Style
+	styleTabInactive  lipgloss.Style
+	styleCardActive   lipgloss.Style
+	styleCardInactive lipgloss.Style
+	styleName         lipgloss.Style
+	styleDesc         lipgloss.Style
+	styleStats        lipgloss.Style
+)
+
 type progressMsg float64
 
 type progressWriter struct {
@@ -53,49 +65,6 @@ func waitForProgress(ch chan float64) tea.Cmd {
 	}
 }
 
-var (
-	styleSearchBar = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(special).
-			Padding(0, 1).
-			Width(60)
-
-	styleSearchDimmed = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(subtle).
-				Padding(0, 1).
-				Width(60)
-
-	styleTabActive = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(special).
-			Foreground(special).
-			Bold(true).
-			Padding(0, 2)
-
-	styleTabInactive = lipgloss.NewStyle().
-				Foreground(subtle).
-				Padding(0, 2)
-
-	styleCardActive = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(special).
-			Padding(0, 1).
-			MarginBottom(1).
-			Width(60)
-
-	styleCardInactive = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(subtle).
-				Padding(0, 1).
-				MarginBottom(1).
-				Width(60)
-
-	styleName  = lipgloss.NewStyle().Bold(true).Foreground(text)
-	styleDesc  = lipgloss.NewStyle().Italic(true).Foreground(subtle)
-	styleStats = lipgloss.NewStyle().Foreground(special)
-)
-
 type SearchPageModel struct {
 	Mode       int
 	SearchType int
@@ -118,6 +87,47 @@ type SearchPageModel struct {
 }
 
 func NewSearchPageModel() SearchPageModel {
+	styleSearchBar = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(special).
+		Padding(0, 1).
+		Width(60)
+
+	styleSearchDimmed = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(subtle).
+		Padding(0, 1).
+		Width(60)
+
+	styleTabActive = lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), false, false, true, false).
+		BorderForeground(special).
+		Foreground(special).
+		Bold(true).
+		Padding(0, 2)
+
+	styleTabInactive = lipgloss.NewStyle().
+		Foreground(subtle).
+		Padding(0, 2)
+
+	styleCardActive = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(special).
+		Padding(0, 1).
+		MarginBottom(1).
+		Width(60)
+
+	styleCardInactive = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(subtle).
+		Padding(0, 1).
+		MarginBottom(1).
+		Width(60)
+
+	styleName = lipgloss.NewStyle().Bold(true).Foreground(text)
+	styleDesc = lipgloss.NewStyle().Italic(true).Foreground(subtle)
+	styleStats = lipgloss.NewStyle().Foreground(special)
+
 	ti := textinput.New()
 	ti.Placeholder = "Search GitHub..."
 	ti.Focus()

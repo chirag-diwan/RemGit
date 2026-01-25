@@ -13,40 +13,14 @@ import (
 )
 
 var (
-	docStyle  = lipgloss.NewStyle().Padding(1, 2)
-	descStyle = lipgloss.NewStyle().Foreground(text).Italic(true)
-
-	titleStyle = lipgloss.NewStyle().
-			Foreground(highlight).
-			Bold(true).
-			Padding(0, 1).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(highlight)
-
-	statusBadge = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFF")).
-			Background(highlight).
-			Padding(0, 1).
-			Bold(true)
-
-	boxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(subtle).
-			Padding(0, 1).
-			MarginRight(1)
-
-	labelStyle = lipgloss.NewStyle().
-			Foreground(subtle).
-			Bold(true)
-
-	statValStyle = lipgloss.NewStyle().
-			Foreground(special).
-			Bold(true)
-
-	readmeBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("62")).
-			Padding(0, 1)
+	docStyle       lipgloss.Style
+	descStyle      lipgloss.Style
+	titleStyle     lipgloss.Style
+	statusBadge    lipgloss.Style
+	boxStyle       lipgloss.Style
+	labelStyle     lipgloss.Style
+	statValStyle   lipgloss.Style
+	readmeBoxStyle lipgloss.Style
 )
 
 type ReadmeMsg string
@@ -63,6 +37,40 @@ type RepoPageModel struct {
 }
 
 func NewRepoPageModel(data githubapi.Repository, userdata githubapi.UserSummary, camefrom int, width int, height int) RepoPageModel {
+	docStyle = lipgloss.NewStyle().Padding(1, 2)
+	descStyle = lipgloss.NewStyle().Foreground(text).Italic(true)
+
+	titleStyle = lipgloss.NewStyle().
+		Foreground(highlight).
+		Bold(true).
+		Padding(0, 1).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(highlight)
+
+	statusBadge = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FFF")).
+		Background(highlight).
+		Padding(0, 1).
+		Bold(true)
+
+	boxStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(subtle).
+		Padding(0, 1).
+		MarginRight(1)
+
+	labelStyle = lipgloss.NewStyle().
+		Foreground(subtle).
+		Bold(true)
+
+	statValStyle = lipgloss.NewStyle().
+		Foreground(special).
+		Bold(true)
+
+	readmeBoxStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62")).
+		Padding(0, 1)
 
 	vp := viewport.New(width, height)
 	vp.Style = lipgloss.NewStyle().Align(lipgloss.Left)

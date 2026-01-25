@@ -60,5 +60,20 @@ Hiting `backspace` on details page will navigate you back
 
 ## Configuration
 
-The CLI is in its initial development stages and does not supports the config file setup
+The config lives in `~/.remgit.conf` file on you system , below is a overview of the configuration that is supported.
 
+```conf
+//Your Github Personal Access token needed for creating repos
+
+PAT=<github personal access token>
+
+//Toggle Homepage display at start
+Showhome = false
+
+//Change the color display
+Subtle    = "#45475a" 
+Highlight = "#cba6f7"
+Text      = "#cdd6f4"
+Warning   = "#f38ba8"
+Special   = "#a6e3a1"
+```

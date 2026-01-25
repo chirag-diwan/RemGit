@@ -15,24 +15,10 @@ type UserReposMsg struct {
 }
 
 var (
-	styleTitle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("205")).
-			Bold(true).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("205")).
-			Padding(0, 1)
-
-	styleRepoCard = lipgloss.NewStyle().
-			PaddingLeft(2).
-			Border(lipgloss.HiddenBorder(), false, false, false, true)
-
-	styleRepoActive = lipgloss.NewStyle().
-			PaddingLeft(2).
-			Foreground(lipgloss.Color("212")).
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(lipgloss.Color("212"))
-
-	styleMeta = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	styleTitle      lipgloss.Style
+	styleRepoCard   lipgloss.Style
+	styleRepoActive lipgloss.Style
+	styleMeta       lipgloss.Style
 )
 
 type UserPageModel struct {
@@ -49,6 +35,25 @@ type UserPageModel struct {
 }
 
 func NewUserPageModel(data githubapi.UserSummary, camefrom int) UserPageModel {
+	styleTitle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("205")).
+		Bold(true).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("205")).
+		Padding(0, 1)
+
+	styleRepoCard = lipgloss.NewStyle().
+		PaddingLeft(2).
+		Border(lipgloss.HiddenBorder(), false, false, false, true)
+
+	styleRepoActive = lipgloss.NewStyle().
+		PaddingLeft(2).
+		Foreground(lipgloss.Color("212")).
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(lipgloss.Color("212"))
+
+	styleMeta = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))

@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -41,7 +40,7 @@ func Lexer(filepath string) []token {
 	charRunes := bytes.Runes(fileContent)
 
 	for _, char := range charRunes {
-		if unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' {
+		if unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '#' {
 			buff = append(buff, char)
 		} else if string(char) == "=" {
 			tokens = append(tokens, token{value: string(buff), tokenType: int16(WORD)})
@@ -52,7 +51,6 @@ func Lexer(filepath string) []token {
 			buff = []rune{}
 		}
 	}
-	fmt.Print(tokens)
 	return tokens
 }
 
@@ -91,6 +89,8 @@ func (l *Parser) Prase() ConfigObj {
 			switch previous.value {
 			case "PAT":
 				obj.PAT = next.value
+			case "Showhome":
+				obj.Showhome = (next.value == "true")
 			case "Subtle":
 				obj.Subtle = next.value
 			case "Highlight":

@@ -8,25 +8,16 @@ import (
 )
 
 var (
-	subtle    = lipgloss.Color("#383838")
-	highlight = lipgloss.Color("#7D56F4")
-	text      = lipgloss.Color("#FFFFFF")
-	warning   = lipgloss.Color("#CD5C5C")
-	special   = lipgloss.Color("#73F59F")
+	subtle    lipgloss.Color
+	highlight lipgloss.Color
+	text      lipgloss.Color
+	warning   lipgloss.Color
+	special   lipgloss.Color
 )
 
 var (
-	window = lipgloss.NewStyle().
-		Border(lipgloss.DoubleBorder()).
-		BorderForeground(subtle).
-		Align(lipgloss.Center).
-		Align(lipgloss.Center).
-		Padding(2)
-	heading = lipgloss.NewStyle().
-		Border(lipgloss.DoubleBorder()).
-		BorderForeground(highlight).
-		Foreground(highlight).
-		Align(lipgloss.Center)
+	window  lipgloss.Style
+	heading lipgloss.Style
 )
 
 const (
@@ -64,8 +55,26 @@ func NewManager(c config.ConfigObj) Manager {
 	warning = lipgloss.Color(c.Warning)
 	special = lipgloss.Color(c.Special)
 
-	return Manager{
-		page: NewHomePageModel(),
+	window = lipgloss.NewStyle().
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(subtle).
+		Align(lipgloss.Center).
+		Align(lipgloss.Center).
+		Padding(2)
+	heading = lipgloss.NewStyle().
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(highlight).
+		Foreground(highlight).
+		Align(lipgloss.Center)
+
+	if c.Showhome {
+		return Manager{
+			page: NewHomePageModel(),
+		}
+	} else {
+		return Manager{
+			page: NewSearchPageModel(),
+		}
 	}
 }
 
