@@ -89,7 +89,7 @@ type SearchPageModel struct {
 func NewSearchPageModel() SearchPageModel {
 	styleSearchBar = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(special).
+		BorderForeground(highlight).
 		Padding(0, 1).
 		Width(60)
 
@@ -112,7 +112,7 @@ func NewSearchPageModel() SearchPageModel {
 
 	styleCardActive = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(special).
+		BorderForeground(highlight).
 		Padding(0, 1).
 		MarginBottom(1).
 		Width(60)
@@ -133,10 +133,13 @@ func NewSearchPageModel() SearchPageModel {
 	ti.Focus()
 	ti.CharLimit = 156
 	ti.Width = 50
+	ti.TextStyle = lipgloss.NewStyle().Foreground(text)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(subtle)
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(highlight)
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	s.Style = lipgloss.NewStyle().Foreground(highlight)
 
 	prog := progress.New(
 		progress.WithDefaultGradient(),
@@ -305,6 +308,13 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Mode = SearchMode
 				m.SearchBar.Focus()
 				return m, textinput.Blink
+			case "m":
+				return m, func() tea.Msg {
+					return NavMsg{
+						to:   CreateRepoPage,
+						from: SearchPage,
+					}
+				}
 			case "c":
 				if m.SearchType == RepoMode && !m.IsCloning {
 					m.IsCloning = true

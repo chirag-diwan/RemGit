@@ -25,6 +25,7 @@ const (
 	SearchPage
 	RepoPage
 	UserPage
+	CreateRepoPage
 )
 
 type RepoLoaded struct {
@@ -43,9 +44,10 @@ type NavMsg struct {
 }
 
 type Manager struct {
-	page   tea.Model
-	Width  int
-	Height int
+	page      tea.Model
+	Width     int
+	Height    int
+	githubPAT string
 }
 
 func NewManager(c config.ConfigObj) Manager {
@@ -69,11 +71,13 @@ func NewManager(c config.ConfigObj) Manager {
 
 	if c.Showhome {
 		return Manager{
-			page: NewHomePageModel(),
+			page:      NewHomePageModel(),
+			githubPAT: c.PAT,
 		}
 	} else {
 		return Manager{
-			page: NewSearchPageModel(),
+			page:      NewSearchPageModel(),
+			githubPAT: c.PAT,
 		}
 	}
 }
@@ -111,6 +115,9 @@ func (m Manager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.page.Init()
 		case UserPage:
 			m.page = NewUserPageModel(msg.userdata, msg.from)
+			return m, m.page.Init()
+		case CreateRepoPage:
+			m.page = NewCreateRepoPage(m.githubPAT, m.Width, m.Height)
 			return m, m.page.Init()
 		}
 		return m, nil

@@ -1,6 +1,7 @@
 package githubapi
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,15 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 )
+
+type RepoRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Private     bool   `json:"private"`
+	HasIssues   bool   `json:"has_issues"`
+	HasProjects bool   `json:"has_projects"`
+	HasWiki     bool   `json:"has_wiki"`
+}
 
 type Readme struct {
 	Content string `json:"content"`
@@ -234,4 +244,30 @@ func GetReadme(repoData Repository) string {
 		panic(err)
 	}
 	return string(decoded)
+}
+
+func CreateRepo(githubPAT string, body RepoRequest) bool {
+	url := "https://api.github.com/user/repos"
+
+	jsonEncoding, err := json.Marshal(body)
+	if err != nil {
+		return false
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonEncoding))
+	if err != nil {
+		return false
+	}
+
+	req.Header.Set("Authorization", "token "+githubPAT)
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }

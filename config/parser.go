@@ -30,7 +30,6 @@ func Lexer(filepath string) []token {
 	defer file.Close()
 
 	var tokens []token
-
 	var buff []rune
 
 	fileContent, e := io.ReadAll(file)
@@ -39,16 +38,38 @@ func Lexer(filepath string) []token {
 	}
 	charRunes := bytes.Runes(fileContent)
 
-	for _, char := range charRunes {
+	for i := 0; i < len(charRunes); i++ {
+		char := charRunes[i]
+
+		if char == '/' && i+1 < len(charRunes) && charRunes[i+1] == '/' {
+
+			if len(buff) > 0 {
+				tokens = append(tokens, token{value: string(buff), tokenType: int16(WORD)})
+				buff = []rune{}
+			}
+
+			for i < len(charRunes) && charRunes[i] != '\n' {
+				i++
+			}
+
+			continue
+		}
+
 		if unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '#' {
 			buff = append(buff, char)
 		} else if string(char) == "=" {
-			tokens = append(tokens, token{value: string(buff), tokenType: int16(WORD)})
-			buff = []rune{}
+
+			if len(buff) > 0 {
+				tokens = append(tokens, token{value: string(buff), tokenType: int16(WORD)})
+				buff = []rune{}
+			}
 			tokens = append(tokens, token{value: "=", tokenType: int16(EQUAL)})
 		} else if char == '\n' {
-			tokens = append(tokens, token{value: string(buff), tokenType: int16(WORD)})
-			buff = []rune{}
+
+			if len(buff) > 0 {
+				tokens = append(tokens, token{value: string(buff), tokenType: int16(WORD)})
+				buff = []rune{}
+			}
 		}
 	}
 	return tokens

@@ -68,7 +68,7 @@ The config lives in `~/.remgit.conf` file on you system , below is a overview of
 PAT=<github personal access token>
 
 //Toggle Homepage display at start
-Showhome = false
+Showhome = true 
 
 //Change the color display
 Subtle    = "#45475a" 
