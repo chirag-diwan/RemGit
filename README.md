@@ -58,6 +58,8 @@ Hiting `c` on a repository item will clone it into the directory you are in.
 
 Hiting `backspace` on details page will navigate you back 
 
+Hitting `esc` and `m` will open repo creation page (m for making) hitting `esc` or `backspace` on the repo creation page will take you back to `search page`
+
 ## Configuration
 
 The config lives in `~/.remgit.conf` file on you system , below is a overview of the configuration that is supported.
