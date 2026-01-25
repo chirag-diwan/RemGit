@@ -5,6 +5,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var (
+	heading lipgloss.Style
+)
+
 var Logo = "██████  ███████ ███    ███  ██████  ██ ████████\n██   ██ ██      ████  ████ ██       ██    ██   \n██████  █████   ██ ████ ██ ██   ███ ██    ██   \n██   ██ ██      ██  ██  ██ ██    ██ ██    ██   \n██   ██ ███████ ██      ██  ██████  ██    ██   "
 
 type HomePageModel struct {
@@ -14,6 +18,12 @@ type HomePageModel struct {
 }
 
 func NewHomePageModel() HomePageModel {
+	heading = lipgloss.NewStyle().
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(highlight).
+		Foreground(highlight).
+		Align(lipgloss.Center)
+
 	return HomePageModel{}
 }
 

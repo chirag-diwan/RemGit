@@ -36,10 +36,10 @@ type UserPageModel struct {
 
 func NewUserPageModel(data githubapi.UserSummary, camefrom int) UserPageModel {
 	styleTitle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("205")).
+		Foreground(highlight).
 		Bold(true).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("205")).
+		BorderForeground(special).
 		Padding(0, 1)
 
 	styleRepoCard = lipgloss.NewStyle().
@@ -48,15 +48,15 @@ func NewUserPageModel(data githubapi.UserSummary, camefrom int) UserPageModel {
 
 	styleRepoActive = lipgloss.NewStyle().
 		PaddingLeft(2).
-		Foreground(lipgloss.Color("212")).
+		Foreground(highlight).
 		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(lipgloss.Color("212"))
+		BorderForeground(special)
 
-	styleMeta = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	styleMeta = lipgloss.NewStyle().Foreground(lipgloss.Color(subtle))
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color(highlight))
 
 	return UserPageModel{
 		currentUserData: data,
@@ -200,7 +200,7 @@ func (model UserPageModel) View() string {
 				lipgloss.Left,
 				fmt.Sprintf("%s%s", pointer, lipgloss.NewStyle().Bold(true).Render(repo.Name)),
 				styleMeta.PaddingLeft(2).Render(desc),
-				styleMeta.PaddingLeft(2).Foreground(lipgloss.Color("205")).Render(fmt.Sprintf("★ %d", repo.StargazersCount)),
+				styleMeta.PaddingLeft(2).Foreground(text).Render(fmt.Sprintf("★ %d", repo.StargazersCount)),
 			)
 
 			listItems = append(listItems, style.Render(itemBlock))

@@ -16,8 +16,7 @@ var (
 )
 
 var (
-	window  lipgloss.Style
-	heading lipgloss.Style
+	window lipgloss.Style
 )
 
 const (
@@ -63,11 +62,6 @@ func NewManager(c config.ConfigObj) Manager {
 		Align(lipgloss.Center).
 		Align(lipgloss.Center).
 		Padding(2)
-	heading = lipgloss.NewStyle().
-		Border(lipgloss.DoubleBorder()).
-		BorderForeground(highlight).
-		Foreground(highlight).
-		Align(lipgloss.Center)
 
 	if c.Showhome {
 		return Manager{

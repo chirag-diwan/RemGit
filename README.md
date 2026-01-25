@@ -4,12 +4,11 @@ RemGit is a GitCli that lets you search and make repos , search users , clone re
 
 !["Homepage"](images/image1.png "Homepage")
 !["Repository search"](images/image2.png "Repository search")
-!["Repo list after search"](images/image3.png "Repo list after search")
-!["Repo display"](images/image4.png "Repo display")
-!["User search"](images/image5.png "User search")
-!["User list display"](images/image6.png "User list display")
-!["User repo display"](images/image7.png "User repo display")
-!["Create repo page"](images/image8.png "Create repo page")
+!["Repository search"](images/image3.png "Repository search")
+!["Repository details page"](images/image4.png "Repository details page")
+!["Readme display"](images/image5.png "Readme display")
+!["User search"](images/image6.png "User search")
+!["Repository creating page"](images/image7.png "Repository creating page")
 
 ## Installation
 
@@ -69,13 +68,26 @@ The config lives in `~/.remgit.conf` file on you system , below is a overview of
 
 PAT=<github personal access token>
 
-//Toggle Homepage display at start
-Showhome = true 
 
-//Change the color display
-Subtle    = "#45475a" 
-Highlight = "#cba6f7"
-Text      = "#cdd6f4"
-Warning   = "#f38ba8"
-Special   = "#a6e3a1"
+// Startup settings
+Showhome = true
+
+// -----------------------------------------------------
+// UI Colors — Neon Cyberpunk
+// -----------------------------------------------------
+
+// Subtle: Dark neon steel blue
+Subtle = #2a2d3e
+
+// Highlight: Electric purple (primary accent)
+Highlight = #00f5d4
+
+// Text: Bright cool white
+Text = #e6edf3
+
+// Warning: Hot neon red-pink
+Warning = #ff5c8a
+
+// Special: Neon cyan
+Special = #bb9af7
 ```
