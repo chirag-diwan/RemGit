@@ -2,9 +2,12 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -112,6 +115,23 @@ func (l *Parser) Prase() ConfigObj {
 				obj.PAT = next.value
 			case "Showhome":
 				obj.Showhome = (next.value == "true")
+			case "Imgstyle":
+				obj.Imgstyle = strings.ToLower(next.value)
+			case "Imgh":
+				var err error
+				obj.Imgheight, err = strconv.Atoi(next.value)
+				if err != nil {
+					fmt.Errorf("%s", err)
+					os.Exit(-1)
+				}
+			case "Imgw":
+				var err error
+				obj.Imgwidth, err = strconv.Atoi(next.value)
+				if err != nil {
+					fmt.Errorf("%s", err)
+					os.Exit(-1)
+				}
+
 			case "Subtle":
 				obj.Subtle = next.value
 			case "Highlight":

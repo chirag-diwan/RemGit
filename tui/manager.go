@@ -8,6 +8,9 @@ import (
 )
 
 var (
+	imgstyle  string
+	imgheight int
+	imgwidth  int
 	subtle    lipgloss.Color
 	highlight lipgloss.Color
 	text      lipgloss.Color
@@ -62,6 +65,11 @@ func NewManager(c config.ConfigObj) Manager {
 		Align(lipgloss.Center).
 		Align(lipgloss.Center).
 		Padding(2)
+
+	imgstyle = c.Imgstyle
+
+	imgheight = c.Imgheight
+	imgwidth = c.Imgwidth
 
 	if c.Showhome {
 		return Manager{
