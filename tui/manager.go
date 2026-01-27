@@ -9,8 +9,8 @@ import (
 
 var (
 	imgstyle  string
-	imgheight int
-	imgwidth  int
+	imgheight int = 80
+	imgwidth  int = 30
 	subtle    lipgloss.Color
 	highlight lipgloss.Color
 	text      lipgloss.Color

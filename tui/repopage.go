@@ -3,12 +3,6 @@ package tui
 import (
 	"bytes"
 	"fmt"
-	"image"
-	"io"
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/blacktop/go-termimg"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,6 +10,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chirag-diwan/RemGit/githubapi"
 	"github.com/chirag-diwan/RemGit/markdown"
+	"github.com/disintegration/imaging"
+	"image"
+	"io"
+	"net/http"
+	"strings"
+	"time"
 )
 
 var (
@@ -52,6 +52,7 @@ type RepoPageModel struct {
 	LoadingReadme bool
 	Imgmap        map[string]string
 	Count         int
+	CacheHeader   string
 }
 
 func transformMarkdownCmd(md string, imgMap map[string]string) tea.Cmd {
@@ -81,7 +82,8 @@ func downloadAndRenderImage(path, url string) tea.Cmd {
 		if err != nil {
 			fmt.Print(err)
 		}
-		img := termimg.New(imgDec)
+		optimizedImg := imaging.Resize(imgDec, 600, 0, imaging.Linear)
+		img := termimg.New(optimizedImg)
 		if err != nil {
 			return imageRenderedMsg{
 				Path: "",
@@ -155,7 +157,7 @@ func NewRepoPageModel(data githubapi.Repository, userdata githubapi.UserSummary,
 	vp := viewport.New(width, height)
 	vp.Style = lipgloss.NewStyle().Align(lipgloss.Left)
 
-	return RepoPageModel{
+	m := RepoPageModel{
 		CurrentRepo:   data,
 		CameFrom:      camefrom,
 		UserData:      userdata,
@@ -163,6 +165,11 @@ func NewRepoPageModel(data githubapi.Repository, userdata githubapi.UserSummary,
 		LoadingReadme: true,
 		Imgmap:        make(map[string]string),
 	}
+
+	m.CacheStaticContent()
+
+	return m
+
 }
 
 func fetchReadmeCmd(repo githubapi.Repository) tea.Cmd {
@@ -173,12 +180,36 @@ func fetchReadmeCmd(repo githubapi.Repository) tea.Cmd {
 }
 
 func (m RepoPageModel) Init() tea.Cmd {
+	m.CacheStaticContent()
 	m.Viewport.SetContent(m.renderFullPage())
 
 	return fetchReadmeCmd(m.CurrentRepo)
 }
 
 func (m RepoPageModel) renderFullPage() string {
+
+	var readmeBlock string
+	if m.LoadingReadme {
+		readmeBlock = lipgloss.NewStyle().Foreground(subtle).Padding(2).Render("Loading README...")
+	} else {
+		readmeBlock = fmt.Sprintf("\n%s\n\n%s",
+			labelStyle.Render("README.md"),
+			m.ReadmeText,
+		)
+	}
+	readmeSection := readmeBoxStyle.Width(82).Render(readmeBlock)
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		m.CacheHeader,
+		readmeSection,
+		"\n"+lipgloss.NewStyle().Foreground(subtle).Render("(Scroll with j/k • backspace to go back)"),
+	)
+	return lipgloss.PlaceHorizontal(m.Width, lipgloss.Center, content)
+
+}
+
+func (m *RepoPageModel) CacheStaticContent() {
 	fullName := titleStyle.Render(m.CurrentRepo.FullName)
 	visibility := "Public"
 	if m.CurrentRepo.Private {
@@ -226,22 +257,9 @@ func (m RepoPageModel) renderFullPage() string {
 	footer := lipgloss.JoinVertical(lipgloss.Left, labelStyle.Render("HTTP Clone:"), cloneLink)
 	footerBox := boxStyle.Width(82).Render(footer)
 
-	var readmeBlock string
-	if m.LoadingReadme {
-		readmeBlock = lipgloss.NewStyle().Foreground(subtle).Padding(2).Render("Loading README...")
-	} else {
-		readmeBlock = fmt.Sprintf("\n%s\n\n%s",
-			labelStyle.Render("README.md"),
-			m.ReadmeText,
-		)
-	}
-	readmeSection := readmeBoxStyle.Width(82).Render(readmeBlock)
-
-	content := lipgloss.JoinVertical(lipgloss.Center,
-		header, "\n", middleSection, footerBox, readmeSection,
-		"\n"+lipgloss.NewStyle().Foreground(subtle).Render("(Scroll with j/k • backspace to go back)"),
+	m.CacheHeader = lipgloss.JoinVertical(lipgloss.Center,
+		header, "\n", middleSection, footerBox,
 	)
-	return lipgloss.PlaceHorizontal(m.Width, lipgloss.Center, content)
 }
 
 func (m RepoPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

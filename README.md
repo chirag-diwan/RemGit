@@ -66,14 +66,16 @@ Hitting `esc` and `m` will open repo creation page (m for making) hitting `esc` 
 The config lives in `~/.remgit.conf` file on you system , below is a overview of the configuration that is supported.
 
 ```conf
-//Your Github Personal Access token needed for creating repos
-
-PAT=<github personal access token>
-
-
 // Startup settings
 Showhome = true
 
+
+// Images Quality Setting 
+Imgstyle = halfblocks
+
+//Images Height and Width Cap (in number of rows / cols )
+Imgh = 20
+Imgw = 60
 // -----------------------------------------------------
 // UI Colors — Neon Cyberpunk
 // -----------------------------------------------------
