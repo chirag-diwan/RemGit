@@ -2,7 +2,7 @@
 
 set -e
 
-APP_NAME="RemGit"
+APP_NAME="remgit"
 INSTALL_DIR="$HOME/.local/bin"
 
 echo "Detecting shell..."
