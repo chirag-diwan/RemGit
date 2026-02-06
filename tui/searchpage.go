@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/chirag-diwan/RemGit/githubapi"
@@ -21,6 +22,13 @@ const (
 const (
 	UserMode int = iota
 	RepoMode
+)
+
+const (
+	HeaderHeight    = 3
+	SearchBarHeight = 3
+	FooterHeight    = 4
+	ChromeHeight    = HeaderHeight + SearchBarHeight + FooterHeight
 )
 
 var (
@@ -43,6 +51,30 @@ type progressMsg float64
 
 type progressWriter struct {
 	ch chan float64
+}
+
+func (m *SearchPageModel) Resize(width, height int) {
+	m.Width = width
+	m.Height = height
+
+	m.ProgressBar.Width = width - 4
+
+	styleSearchBar = styleSearchBar.Width(width - 4)
+	styleSearchDimmed = styleSearchDimmed.Width(width - 4)
+
+	vpHeight := m.Height - ChromeHeight
+	if vpHeight < 5 {
+		vpHeight = 5
+	}
+	m.Viewport.Height = vpHeight
+	m.Viewport.Width = m.Width
+
+	ItemsPerPage = m.Viewport.Height / 5
+	if ItemsPerPage < 1 {
+		ItemsPerPage = 1
+	}
+
+	m.Viewport.SetContent(m.renderContentString())
 }
 
 func (pw *progressWriter) Write(p []byte) (int, error) {
@@ -84,20 +116,21 @@ type SearchPageModel struct {
 	ProgressBar  progress.Model
 	IsCloning    bool
 	progressChan chan float64
+
+	Viewport viewport.Model
 }
 
 func NewSearchPageModel() SearchPageModel {
+
 	styleSearchBar = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(highlight).
-		Padding(0, 1).
-		Width(60)
+		Padding(0, 1)
 
 	styleSearchDimmed = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(subtle).
-		Padding(0, 1).
-		Width(60)
+		Padding(0, 1)
 
 	styleTabActive = lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder(), false, false, true, false).
@@ -114,15 +147,13 @@ func NewSearchPageModel() SearchPageModel {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(highlight).
 		Padding(0, 1).
-		MarginBottom(1).
-		Width(60)
+		MarginBottom(0)
 
 	styleCardInactive = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(subtle).
 		Padding(0, 1).
-		MarginBottom(1).
-		Width(60)
+		MarginBottom(0)
 
 	styleName = lipgloss.NewStyle().Bold(true).Foreground(text)
 	styleDesc = lipgloss.NewStyle().Italic(true).Foreground(subtle)
@@ -132,7 +163,7 @@ func NewSearchPageModel() SearchPageModel {
 	ti.Placeholder = "Search GitHub..."
 	ti.Focus()
 	ti.CharLimit = 156
-	ti.Width = 50
+
 	ti.TextStyle = lipgloss.NewStyle().Foreground(text)
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(subtle)
 	ti.Cursor.Style = lipgloss.NewStyle().Foreground(highlight)
@@ -147,6 +178,8 @@ func NewSearchPageModel() SearchPageModel {
 		progress.WithoutPercentage(),
 	)
 
+	viewport := viewport.New(0, 0)
+
 	return SearchPageModel{
 		Mode:        SearchMode,
 		SearchType:  RepoMode,
@@ -160,6 +193,7 @@ func NewSearchPageModel() SearchPageModel {
 		Loading:     false,
 		ProgressBar: prog,
 		IsCloning:   false,
+		Viewport:    viewport,
 	}
 }
 
@@ -204,17 +238,19 @@ func (m *SearchPageModel) moveCursor(step int) {
 	}
 }
 
-func (m SearchPageModel) renderRepoCard(repo githubapi.Repository, isActive bool) string {
+func (m SearchPageModel) renderRepoCard(repo githubapi.Repository, isActive bool, width int) string {
 	style := styleCardInactive
 	if isActive {
 		style = styleCardActive
 	}
 
+	innerStyle := style.Copy().Width(width - 4)
+
 	desc := ""
 	if repo.Description != nil {
 		desc = *repo.Description
-		if len(desc) > 50 {
-			desc = desc[:47] + "..."
+		if len(desc) > 60 {
+			desc = desc[:57] + "..."
 		}
 	} else {
 		desc = "No description provided."
@@ -234,14 +270,15 @@ func (m SearchPageModel) renderRepoCard(repo githubapi.Repository, isActive bool
 	footer := lipgloss.NewStyle().Foreground(subtle).Render(fmt.Sprintf("%s • Updated %s", lang, repo.UpdatedAt.Format("02 Jan")))
 
 	content := lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
-	return style.Render(content)
+	return innerStyle.Render(content)
 }
 
-func (m SearchPageModel) renderUserCard(user githubapi.UserSummary, isActive bool) string {
+func (m SearchPageModel) renderUserCard(user githubapi.UserSummary, isActive bool, width int) string {
 	style := styleCardInactive
 	if isActive {
 		style = styleCardActive
 	}
+	innerStyle := style.Copy().Width(width - 4)
 
 	content := lipgloss.JoinHorizontal(lipgloss.Center,
 		lipgloss.NewStyle().Foreground(special).Render("(o) "),
@@ -249,7 +286,7 @@ func (m SearchPageModel) renderUserCard(user githubapi.UserSummary, isActive boo
 		lipgloss.NewStyle().MarginLeft(2).Foreground(subtle).Render("View Profile →"),
 	)
 
-	return style.Render(content)
+	return innerStyle.Render(content)
 }
 
 func (m SearchPageModel) Init() tea.Cmd {
@@ -260,17 +297,32 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	ItemsPerPage = m.Height / 10
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
-		m.ProgressBar.Width = msg.Width - 10
+
+		m.ProgressBar.Width = msg.Width - 4
+		styleSearchBar = styleSearchBar.Width(msg.Width - 4)
+		styleSearchDimmed = styleSearchDimmed.Width(msg.Width - 4)
+
+		vpHeight := m.Height - ChromeHeight
+		if vpHeight < 5 {
+			vpHeight = 5
+		}
+
+		m.Viewport.Height = vpHeight
+		m.Viewport.Width = m.Width
+
+		ItemsPerPage = m.Viewport.Height / 5
+		if ItemsPerPage < 1 {
+			ItemsPerPage = 1
+		}
 
 	case progress.FrameMsg:
 		progressModel, cmd := m.ProgressBar.Update(msg)
 		m.ProgressBar = progressModel.(progress.Model)
-		return m, cmd
+		cmds = append(cmds, cmd)
 
 	case progressMsg:
 		if m.ProgressBar.Percent() >= 1.0 {
@@ -281,8 +333,7 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		cmd := m.ProgressBar.IncrPercent(float64(msg))
-
-		return m, tea.Batch(cmd, waitForProgress(m.progressChan))
+		cmds = append(cmds, tea.Batch(cmd, waitForProgress(m.progressChan)), cmd)
 
 	case spinner.TickMsg:
 		if m.Loading {
@@ -294,16 +345,20 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Result = msg
 		m.Cursor = 0
 		m.WindowStart = 0
+
+		ItemsPerPage = m.Viewport.Height / 5
 		return m, nil
 
 	case tea.KeyMsg:
-
 		if m.Mode == NavigationMode {
 			switch msg.String() {
 			case "j", "down":
 				m.moveCursor(1)
+
+				m.Viewport.ScrollDown(1)
 			case "k", "up":
 				m.moveCursor(-1)
+				m.Viewport.ScrollUp(1)
 			case "i", "/":
 				m.Mode = SearchMode
 				m.SearchBar.Focus()
@@ -326,7 +381,7 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					name := m.Result.Repos.Items[m.Cursor].Name
 					go githubapi.CloneURL(m.Result.Repos.Items[m.Cursor].CloneURL, name, &m.CloneProgress)
 
-					return m, waitForProgress(m.progressChan)
+					cmds = append(cmds, waitForProgress(m.progressChan))
 				}
 			case "tab":
 				if m.SearchType == UserMode {
@@ -355,7 +410,7 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Mode = NavigationMode
 				m.SearchBar.Blur()
 				m.Loading = true
-				return m, tea.Batch(m.getQueryResult(m.SearchBar.Value()), m.Spinner.Tick)
+				cmds = append(cmds, tea.Batch(m.getQueryResult(m.SearchBar.Value()), m.Spinner.Tick))
 			case "esc":
 				m.Mode = NavigationMode
 				m.SearchBar.Blur()
@@ -371,9 +426,52 @@ func (m SearchPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.SearchBar, cmd = m.SearchBar.Update(msg)
 			cmds = append(cmds, cmd)
 		}
+
 	}
 
+	content := m.renderContentString()
+	m.Viewport.SetContent(content)
+	m.Viewport.SetYOffset(0)
+
+	m.Viewport, cmd = m.Viewport.Update(msg)
+	cmds = append(cmds, cmd)
+
 	return m, tea.Batch(cmds...)
+}
+
+func (m SearchPageModel) renderContentString() string {
+	var listItems []string
+
+	if m.getListLength() > 0 {
+		if m.WindowStart >= m.getListLength() {
+			m.WindowStart = 0
+		}
+
+		endIndex := m.WindowStart + ItemsPerPage
+		if endIndex > m.getListLength() {
+			endIndex = m.getListLength()
+		}
+
+		if m.SearchType == UserMode {
+			subset := m.Result.Users.Items[m.WindowStart:endIndex]
+			for i, item := range subset {
+				isSelected := (m.WindowStart + i) == m.Cursor
+
+				listItems = append(listItems, m.renderUserCard(item, isSelected, m.Viewport.Width))
+			}
+		} else {
+			subset := m.Result.Repos.Items[m.WindowStart:endIndex]
+			for i, item := range subset {
+				isSelected := (m.WindowStart + i) == m.Cursor
+
+				listItems = append(listItems, m.renderRepoCard(item, isSelected, m.Viewport.Width))
+			}
+		}
+	} else {
+		listItems = append(listItems, lipgloss.NewStyle().Padding(2).Foreground(subtle).Render("No results found."))
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, listItems...)
 }
 
 func (m SearchPageModel) View() string {
@@ -402,7 +500,10 @@ func (m SearchPageModel) View() string {
 		tUser = styleTabInactive.Render("Users")
 		tRepo = styleTabActive.Render("Repositories")
 	}
-	header := lipgloss.JoinHorizontal(lipgloss.Top, tUser, tRepo)
+
+	header := lipgloss.NewStyle().Height(HeaderHeight).Render(
+		lipgloss.JoinHorizontal(lipgloss.Top, tUser, tRepo),
+	)
 
 	var sBar string
 	if m.Mode == SearchMode {
@@ -410,31 +511,7 @@ func (m SearchPageModel) View() string {
 	} else {
 		sBar = styleSearchDimmed.Render(m.SearchBar.View())
 	}
-
-	var listItems []string
-	if m.getListLength() > 0 {
-		endIndex := m.WindowStart + ItemsPerPage
-		if endIndex > m.getListLength() {
-			endIndex = m.getListLength()
-		}
-
-		if m.SearchType == UserMode {
-			subset := m.Result.Users.Items[m.WindowStart:endIndex]
-			for i, item := range subset {
-				isSelected := (m.WindowStart + i) == m.Cursor
-				listItems = append(listItems, m.renderUserCard(item, isSelected))
-			}
-		} else {
-			subset := m.Result.Repos.Items[m.WindowStart:endIndex]
-			for i, item := range subset {
-				isSelected := (m.WindowStart + i) == m.Cursor
-				listItems = append(listItems, m.renderRepoCard(item, isSelected))
-			}
-		}
-	} else {
-		listItems = append(listItems, lipgloss.NewStyle().Padding(2).Foreground(subtle).Render("No results found."))
-	}
-	listView := lipgloss.JoinVertical(lipgloss.Left, listItems...)
+	sBar = lipgloss.NewStyle().Height(SearchBarHeight).Render(sBar)
 
 	var footerStatus string
 	if m.IsCloning {
@@ -443,15 +520,18 @@ func (m SearchPageModel) View() string {
 			m.ProgressBar.View(),
 		)
 	} else {
-		footerStatus = styleDesc.Render("Nothing to clone")
+		page := (m.WindowStart / ItemsPerPage) + 1
+		footerStatus = styleDesc.Render(fmt.Sprintf("Page %d", page))
 	}
+
+	footerStatus = lipgloss.NewStyle().Height(FooterHeight).Render(footerStatus)
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
-		lipgloss.NewStyle().MarginBottom(1).Render(header),
-		lipgloss.NewStyle().MarginBottom(1).Render(sBar),
-		lipgloss.NewStyle().MarginTop(2).Render(listView),
-		lipgloss.NewStyle().MarginTop(2).Render(footerStatus),
+		header,
+		sBar,
+		m.Viewport.View(),
+		footerStatus,
 	)
 
 	return lipgloss.Place(

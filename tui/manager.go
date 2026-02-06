@@ -109,11 +109,13 @@ func (m Manager) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case SearchPage:
 			m.page = NewSearchPageModel()
+			ResizeMsg := tea.WindowSizeMsg{Width: m.Width, Height: m.Height}
+			m.page, _ = m.page.Update(ResizeMsg)
 			return m, m.page.Init()
 		case RepoPage:
-			resizeMsg := tea.WindowSizeMsg{Width: m.Width, Height: m.Height}
+			ResizeMsg := tea.WindowSizeMsg{Width: m.Width, Height: m.Height}
 			newPage := NewRepoPageModel(msg.repodata, msg.userdata, msg.from, m.Width, m.Height)
-			m.page, _ = newPage.Update(resizeMsg)
+			m.page, _ = newPage.Update(ResizeMsg)
 			return m, m.page.Init()
 		case UserPage:
 			m.page = NewUserPageModel(msg.userdata, msg.from)

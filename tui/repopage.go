@@ -307,8 +307,6 @@ func (m RepoPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Viewport.Width = m.Width
 		m.Viewport.Height = m.Height
 
-		m.Viewport.Width = m.Width
-		m.Viewport.Height = m.Height
 		m.Viewport.SetContent(m.renderFullPage())
 
 	case tea.KeyMsg:
@@ -319,13 +317,13 @@ func (m RepoPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "j", "down":
-			m.Viewport.LineDown(1)
+			m.Viewport.ScrollDown(1)
 		case "k", "up":
-			m.Viewport.LineUp(1)
+			m.Viewport.ScrollUp(1)
 		case "d", "ctrl+d":
-			m.Viewport.HalfViewDown()
+			m.Viewport.HalfPageDown()
 		case "u", "ctrl+u":
-			m.Viewport.HalfViewUp()
+			m.Viewport.HalfPageUp()
 		}
 	}
 

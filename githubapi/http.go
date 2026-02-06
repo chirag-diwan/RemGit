@@ -195,7 +195,8 @@ func GetCommits(repo *Repository) []Commit {
 }
 
 func GetUsers(userName string) UserSearchResponse {
-	url := fmt.Sprintf("https://api.github.com/search/users?q=%s&sort=followers&order=desc&per_page=10&page=1", userName)
+	//url := fmt.Sprintf("https://api.github.com/search/users?q=%s&sort=followers&order=desc&per_page=20&page=1", userName)
+	url := fmt.Sprintf("https://api.github.com/search/users?q=%s", userName)
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
