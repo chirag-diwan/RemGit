@@ -27,17 +27,19 @@ chmod +x install.sh && ./install.sh
 ```bash
 git clone https://github.com/chirag-diwan/RemGit.git
 
-cd RemGit && mkdir build && cd build
+cd RemGit
 
-go build ..
+go mod tidy
+go build -o remgit main.go
 
 mkdir -p ~/.local/bin
+mv remgit ~/.local/bin
 
-mv RemGit ~/.local/bin
+cp ./remgit.conf ~/.remgit.conf
 
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc ## or in ~/.zshrc depending on your setup
 
-source ~/.bashrc
+source ~/.bashrc ## or ~/.zshrc
 ```
 
 

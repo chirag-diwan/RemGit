@@ -2,6 +2,7 @@
 
 set -e
 
+CONFIG_DIR="$HOME/"
 APP_NAME="remgit"
 INSTALL_DIR="$HOME/.local/bin"
 
@@ -28,6 +29,10 @@ RC_FILE="$(detect_shell_rc)"
 echo "Using shell config: $RC_FILE"
 
 
+echo "Downloading packages ..."
+go mod tidy 
+
+
 echo "Building binary..."
 go build -o "$APP_NAME"
 
@@ -36,6 +41,9 @@ echo "Installing binary to $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 mv "$APP_NAME" "$INSTALL_DIR/"
 
+
+echo "Writing config..."
+mv "./remgit.conf" "$CONFIG_DIR"
 
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
   echo "Adding $INSTALL_DIR to PATH"
